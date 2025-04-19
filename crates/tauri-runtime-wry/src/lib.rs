@@ -4441,6 +4441,9 @@ fn create_window<T: UserEvent, F: Fn(RawWindow) + Send + 'static>(
     .build(event_loop)
     .map_err(|_| Error::CreateWindow)?;
 
+  #[cfg(target_os = "ios")]
+  window.set_prefers_home_indicator_hidden(true);
+
   #[cfg(feature = "tracing")]
   {
     drop(window_create_span);
