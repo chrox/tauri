@@ -521,6 +521,26 @@ mod gtk {
     }
   }
 
+  fn set_webview_input_shape(webview: &webkit2gtk::WebView) {
+    use gtk::prelude::*;
+    if let Some(gdk_window) = webview.window() {
+      let scale = gdk_window.scale_factor();
+      let border = BORDERLESS_RESIZE_INSET * scale;
+      let width = gdk_window.width();
+      let height = gdk_window.height();
+      if width > 2 * border && height > 2 * border {
+        let region =
+          gtk::gdk::cairo::Region::create_rectangle(&gtk::gdk::cairo::RectangleInt::new(
+            border,
+            border,
+            width - 2 * border,
+            height - 2 * border,
+          ));
+        gdk_window.input_shape_combine_region(&region, 0, 0);
+      }
+    }
+  }
+
   pub fn attach_resize_handler(webview: &wry::WebView) {
     use gtk::{
       gdk::{prelude::*, WindowEdge},
@@ -536,6 +556,22 @@ mod gtk {
         | gtk::gdk::EventMask::BUTTON_PRESS_MASK
         | gtk::gdk::EventMask::TOUCH_MASK,
     );
+
+    // Exclude edge pixels from the webview's input area so that pointer events
+    // at the edges fall through to the GtkWindow, allowing tao's motion handler
+    // to set the native resize cursor managed by the window manager.
+    set_webview_input_shape(&webview);
+    {
+      let webview_clone = webview.clone();
+      if let Some(gtk_window) = webview.parent().and_then(|p| p.parent()) {
+        gtk_window
+          .downcast_ref::<gtk::Window>()
+          .unwrap()
+          .connect_size_allocate(move |_, _| {
+            set_webview_input_shape(&webview_clone);
+          });
+      }
+    }
 
     webview.connect_button_press_event(
       move |webview: &webkit2gtk::WebView, event: &gtk::gdk::EventButton| {
