@@ -213,7 +213,7 @@ pub(crate) fn unlisten_js_script(
   format!(
     "(function () {{
         const listeners = (window['{listeners_object_name}'] || {{}})[{event_arg}]
-        if (listeners) {{
+        if (listeners && listeners[{event_id_arg}]) {{
           window.__TAURI_INTERNALS__.unregisterCallback(listeners[{event_id_arg}].handlerId)
         }}
       }})()
