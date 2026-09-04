@@ -203,6 +203,10 @@ tracing = ["dep:tracing", "tauri-macros/tracing", "tauri-runtime-wry?/tracing"]
 test = []
 compression = ["tauri-macros/compression", "tauri-utils/compression"]
 wry = ["webview2-com", "webkit2gtk", "tauri-runtime-wry"]
+# readest: no-op stub so an app can declare `cef = ["tauri/cef"]` in every
+# build; only the Linux CEF build resolves `tauri` to upstream's feat/cef,
+# where this feature pulls in the real CEF runtime. Never enabled here.
+cef = []
 # TODO: Remove in v3 - wry does not have this feature anymore
 objc-exception = []
 linux-libxdo = ["tray-icon/libxdo", "muda/libxdo"]
