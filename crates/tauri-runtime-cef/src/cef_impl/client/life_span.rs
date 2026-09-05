@@ -60,6 +60,7 @@ wrap_life_span_handler! {
   impl LifeSpanHandler {
     fn on_after_created(&self, browser: Option<&mut Browser>) {
       if let Some(browser) = browser
+        && browser.is_popup() != 1
         && let Some(initial_url) = &self.initial_url
       {
         check_and_reload_if_blank(browser.clone(), initial_url.clone());
@@ -142,7 +143,15 @@ wrap_life_span_handler! {
     /// On Linux the default only closes the browser's own X11 child window (and
     /// calls `WindowDestroyed` itself), so the default is already correct there.
     fn do_close(&self, browser: Option<&mut Browser>) -> std::os::raw::c_int {
-      if browser.is_none() {
+      // This client also serves the DevTools browser CEF opens for the webview,
+      // which reports itself as a popup. Its close must not be booked against
+      // the webview: taking it over here would tear down the webview's own
+      // host, and `on_before_close` below would drop the webview from the
+      // runtime state and close (then exit) the app. Leave popups to CEF.
+      let Some(browser) = browser else {
+        return 0;
+      };
+      if browser.is_popup() == 1 {
         return 0;
       }
 
@@ -160,7 +169,11 @@ wrap_life_span_handler! {
     }
 
     fn on_before_close(&self, browser: Option<&mut Browser>) {
-      if browser.is_none() {
+      let Some(browser) = browser else {
+        return;
+      };
+      // See `do_close`: a closing DevTools (popup) browser is not the webview.
+      if browser.is_popup() == 1 {
         return;
       }
       let _ = self
